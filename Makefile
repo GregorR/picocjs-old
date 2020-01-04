@@ -1,9 +1,17 @@
-CC=gcc
-CFLAGS=-Wall -pedantic -g -DUNIX_HOST -DVER=\"2.1\"
-LIBS=-lm -lreadline
+CC=emcc
+MINIFIER=closure-compiler --language_in ECMASCRIPT5 --warning_level QUIET
+EFLAGS=\
+	--memory-init-file 0 --pre-js pre.js --post-js post.js \
+	-s "EXPORT_NAME='PicoC'" \
+	-s "EXPORTED_FUNCTIONS=['_picoc', '_open', '_dup2', '_close']" \
+	-s "EXTRA_EXPORTED_RUNTIME_METHODS=['cwrap', 'FS']" \
+	-s MODULARIZE_INSTANCE=1 \
+	-s ALLOW_MEMORY_GROWTH=1
+CFLAGS=-Wall -pedantic -g -DUNIX_HOST -DVER=\"2.1\" $(EFLAGS)
+LIBS=-lm
 
-TARGET	= picoc
-SRCS	= picoc.c table.c lex.c parse.c expression.c heap.c type.c \
+TARGET	= picoc.link.o
+SRCS	= empicoc.c table.c lex.c parse.c expression.c heap.c type.c \
 	variable.c clibrary.c platform.c include.c debug.c \
 	platform/platform_unix.c platform/library_unix.c \
 	cstdlib/stdio.c cstdlib/math.c cstdlib/string.c cstdlib/stdlib.c \
@@ -11,7 +19,21 @@ SRCS	= picoc.c table.c lex.c parse.c expression.c heap.c type.c \
 	cstdlib/unistd.c
 OBJS	:= $(SRCS:%.c=%.o)
 
-all: $(TARGET)
+all: dist/picoc.asm.js dist/picoc.wasm.js $(TARGET)
+
+dist/%.asm.js: %.link.o
+	$(CC) $(EFLAGS) -s WASM=0 $< -o $@
+	$(MINIFIER) < $@ > $@.tmp
+	mv $@.tmp $@
+	cat license.js $@ > $@.tmp
+	mv $@.tmp $@
+
+dist/%.wasm.js: %.link.o
+	$(CC) $(EFLAGS) $< -o $@
+	$(MINIFIER) < $@ > $@.tmp
+	mv $@.tmp $@
+	cat license.js $@ > $@.tmp
+	mv $@.tmp $@
 
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(LIBS)
@@ -21,6 +43,7 @@ test:	all
 
 clean:
 	rm -f $(TARGET) $(OBJS) *~
+	rm -f *.asm.js *.wasm.js *.wasm.wasm
 
 count:
 	@echo "Core:"

@@ -23,7 +23,9 @@ void PlatformInit(Picoc *pc)
 {
     /* capture the break signal and pass it to the debugger */
     break_pc = pc;
+#ifndef __EMSCRIPTEN__
     signal(SIGINT, BreakHandler);
+#endif
 }
 #else
 void PlatformInit(Picoc *pc)

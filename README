@@ -1,3 +1,12 @@
+This is a modified version of PicoC compiled to emscripten/JavaScript. To use
+it, include picoc.asm.js or picoc.wasm.js as appropriate, then use the exported
+PicoC object. PicoC.picoc() takes a string (C code) as input and outputs the
+return from its main function. To capture stdout and stderr, use PicoC.FS.init;
+see emscripten's FS documentation or test.js for more info.
+
+The remainder is the original PicoC README file.
+
+
 picoc
 -----
 
